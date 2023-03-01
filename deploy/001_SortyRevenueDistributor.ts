@@ -2,15 +2,45 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
 
-const OPTIMISM_CHAIN_ID = 10;
-const OPTIMISM_GOERLI_CHAIN_ID = 420;
+// For safety checks:
+const networks = {
+  deployOptimismGoerli: {
+    chainId: 420,
+    name: "optimism-goerli",
+  },
+  deployOptimism: {
+    chainId: 10,
+    name: "optimism",
+  },
+} as { [key: string]: { [key: string]: any } };
 
 const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const chainId = (await ethers.provider.getNetwork()).chainId;
-  if (chainId != OPTIMISM_CHAIN_ID && chainId != OPTIMISM_GOERLI_CHAIN_ID) {
-    throw new Error(
-      `Can only deploy to Optimism with chainId ${OPTIMISM_CHAIN_ID} or Optimism Goerli with chainId ${OPTIMISM_GOERLI_CHAIN_ID}; detected chainId is ${chainId}`,
+  const network = await ethers.provider.getNetwork();
+  if (!(hre.network.name in networks)) {
+    console.error(
+      `Cannot deploy to network '${hre.network.name}'. Only 'deployOptimism' and 'deployOptimismGoerli' are supported.`,
     );
+    process.exit(1);
+  }
+
+  const currentNetworkInfo = {
+    chainId: network.chainId,
+    name: network.name,
+  };
+  const expectedNetworkInfo = networks[hre.network.name];
+
+  if (
+    currentNetworkInfo.chainId != expectedNetworkInfo.chainId ||
+    currentNetworkInfo.name != expectedNetworkInfo.name
+  ) {
+    console.log(
+      `Wrong network detected to deploy to ${
+        hre.network.name
+      }, expected ${JSON.stringify(expectedNetworkInfo)}, got ${JSON.stringify(
+        currentNetworkInfo,
+      )}. Please connect to the correct network and set the good target on command line.`,
+    );
+    process.exit(1);
   }
 
   const { deployments, getNamedAccounts } = hre;
