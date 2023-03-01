@@ -1,0 +1,28 @@
+.pnpm:
+  image: node:16
+  before_script:
+    - npm install -g pnpm
+    - pnpm install
+  cache:
+    paths:
+      - node_modules/
+
+stages:
+  - qa
+  - build
+  - deploy
+
+test-job:
+  extends: .pnpm
+  stage: qa
+  script:
+    - pnpm run test:ci
+
+build:
+  extends: .pnpm
+  stage: build
+  script:
+    - pnpm run build
+  artifacts:
+    paths:
+      - artifacts
